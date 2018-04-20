@@ -4,7 +4,7 @@
 [![forthebadge](https://forthebadge.com/images/badges/powered-by-electricity.svg)](https://forthebadge.com)
 
 This repo is the source companion for the `Building a GraphQL API in Rails` tutorial series.
-- [Part 1]
+- [Part 1](https://github.com/ranchow/todos_graphql-api/tree/part-1)
 
 ## Setting up
 

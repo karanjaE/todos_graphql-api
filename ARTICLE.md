@@ -1,4 +1,5 @@
-# Intro
+# Introduction
+[Code](https://github.com/ranchow/todos_graphql-api)
 
 This is the first of a three-part tutorial where we'll learn the fundamentals of building `GraphQL` APIs. We'll try our best to have as much test coverage as possible too.
 
@@ -1053,5 +1054,7 @@ And voila! We are done with the first part of building out `Todo List GraphQL AP
 # Conclusion
 
 At this point, we should be able to create simple queries and mutations and have an understanding of how GraphQL works in Ruby/Rails.
+
+I'd also like to thank my good friend [Austin](https://github.com/akabiru) for letting me use his article on [building RESTful APIs with Rails 5](https://scotch.io/tutorials/build-a-restful-json-api-with-rails-5-part-one) as inspiration for this series.
 
 In the next part of the tutorial, we will look at authentication.
