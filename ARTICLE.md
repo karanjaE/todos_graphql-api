@@ -1,20 +1,21 @@
 # Intro
-some intro
+
+This is the first of a three-part tutorial where we'll learn the fundamentals of building `GraphQL` APIs. We'll try our best to have as much test coverage as possible too.
 
 ### Assumptions
 
+This is not a total beginner tutorial. You should have some experience writing applications using Rails and some basic understanding of web APIs. However, no experience in building GraphQL APIs is required or expected.
+
 # Prerequisites
 
-As of writing this article, the Ruby version was "2.5.1" and Rails "5.2.0". Ensure that your versions are the same as mine or newer. I'll try and keep this article as up-to-date as possible. I recomment using [RVM](https://rvm.io) to manage different Ruby versions in case you have apps that require older versions fo some reason. Check out the _README_ file in the [repo]() for installation instructions.
-
-Conventionally, a GraphQL API only requires one endpoint to handle all your requests.
+As of writing this article, the Ruby version was "2.5.1" and Rails "5.2.0". I'll try and keep this article as up-to-date as possible. I recomment using [RVM](https://rvm.io) to manage different Ruby versions in case you have apps that require older versions fo some reason.
 
 In this part we will cover:
 - Setting up our app
 - Introduction to Queries
 - Introduction to Mutations
 
-We will also try to introduce some conventions/best practices that would help keep our queries and mutations well organised. But first things first.
+We will also try to introduce some conventions/best practices that would help keep our GraphQL stuff well organised. But first things first.
 
 # Setting up
 
@@ -22,17 +23,18 @@ Generate a new Rails app.
 ```bash
 rails new todos_graphql_api --api -T -d postgresql
 ```
- The `--api` argument tells Rails that this is an API only application. `-T` excludes Minitest. We will use [RSpec]() as our testing framework.
 
- Run:
- ```bash
- rails db:create
- ```
- to initialize out test and development databases.
+The `--api` argument tells Rails that this is an API only application. `-T` excludes Minitest which is Rails' default test framework. We will use [RSpec](https://rubygems.org/gems/rspec-rails) as our testing framework.
 
- To be able to query our API, we'll need a client. I recomment using Graphiql-app but there are definitely other options out there to discover if you're curious. Go [here](https://github.com/skevy/graphiql-app) to install Graphiql.
+Run:
+```bash
+rails db:create
+```
+to initialize out test and development databases.
 
- ### Dependencies
+To be able to query our API, we'll need a client. I recomment using Graphiql-app but there are definitely other options out there to discover if you're curious. Go [here](https://github.com/skevy/graphiql-app) to install Graphiql.
+
+### Dependencies
 
 Before we go any further, here's a list of our app's dependencies:
 - [GraphQL Rails](https://rubygems.org/gems/graphql) : The gem that will form the backbone of our api
@@ -71,23 +73,23 @@ group :test do
   gem 'shoulda-matchers', '~> 3.1', '>= 3.1.2'
 end
 ```
- Then run `bundle install` to install the dependencies.
+Then run `bundle install` to install the dependencies.
 
- #### Configuration
+#### Configuration
 
- We'll first set up testing.
+We'll first set up testing.
 
- To initialize the spec directory, run `rails g rspec:install`. This command creates a `spec/` directory in the app's root and a `.rspec` file. Replace the contents of `.rspec` with these to override global RSpec configurations:
+To initialize the spec directory, run `rails g rspec:install`. This command creates a `spec/` directory in the app's root and a `.rspec` file. Replace the contents of `.rspec` with these to override global RSpec configurations:
 
- ```bash
- # .rspec
+```bash
+# .rspec
 
- --color
- --format documentation
- --require rails_helper
+--color
+--format documentation
+--require rails_helper
 ```
 
- `--require rails_helper` line automatically requires the `rails_helper` in all our specs so that we don't have to add the line in every test file. I just find it more [DRY]()
+ `--require rails_helper` line automatically requires the `rails_helper` in all our specs so that we don't have to add the line in every test file. I just find it more [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)
 
  Then, `factories` directory in `spec/`. This is where we'll store our fixtures.
  `mkdir spec/factories`
@@ -133,7 +135,7 @@ end
 
  # Models
 
- For now we only need two models: `todo list` and `item`.
+ For now we only need two models: `todolist` and `item`.
 
  ```bash
  rails g model todo_list title:string
@@ -146,7 +148,7 @@ end
 Next add the `items` model:
 ```bash
 rails g model item name:string done:boolean todo_list:references
-rails g rspec:model item
+rails g rspec:model item # in case the spec is not automatically generated
 ```
 
 The `todo:references` argument creates a `belongs_to` association with the `Todo List`.
@@ -215,13 +217,20 @@ Then open `app/models/todo_list.rb` and update it:
 
 # [...]
 validates :title, presence: true, uniqueness: true
-has_many :items
+has_many :items, dependent: :destroy
 ```
 
-Add the `item` tests:
+The `dependent: :destroy` is there so that if we delete a todo list, all items associated with it are deleted as well and that way we'll have no _orphanded_ items.
+
+Our tests should now pass.
+
+Next we add the `item` tests:
 
 ```ruby
+# spec/models/item_spec.rb
+
 RSpec.describe Item, type: :model do
+  # check that we have a factory for items
   it 'has a valid factory' do
     expect(build(:item)).to be_valid
   end
@@ -287,7 +296,7 @@ Now all our tests should pass. And that's all we need for our models. Now to som
 
 # The API
 
-First things first, we need to set up GraphQL. During our setup we installed the `GraphQL` gem which is all we need for now. Now run:
+First things first, we need to set up GraphQL. During our initial setup we installed the `GraphQL` gem which is all we need for now. Now run:
 ```bash
 rails g graphql:install
 ```
@@ -305,7 +314,7 @@ end
 ```
 And run `bundle install` to install it. We are good to go now.
 
-For the remainder of this part, we'll cover introduction to three concepts/terms: `Schema`, `Types`, `Queries` and `Mutations` respectively. We'll also cover testing for these three and introduce a neat way to organize our API. Let's get to it.
+For the remainder of this part, we'll cover introduction to four concepts/terms: `Schema`, `Types`, `Queries` and `Mutations` respectively. We'll also cover testing for these three and introduce a neat way to organize our API. Let's get to it.
 
 ## Schema
 
@@ -320,16 +329,16 @@ We will get into the nitty-gritties of each of the contents as we go but if you'
 
 ## Types
 
-GraphQL uses a Types to define the possible set of data you can possibly query in your API. Each type has a set of fields which define, well, fields each object can return and their data types. They can be anything from a simple literal like a string or integer to a column in the database table to the result of a method defined somewhere in our app.
+GraphQL uses a `Types` system to define the possible set of data you can possibly query in your API. Each type has a set of fields which define, well, fields each object can return and their data types. They can be anything from a simple literal like a string or integer to a column in the database table to the result of a method defined somewhere in our app.
 
 Each field has to have a specified datatype that it should return. Most of the basic data types are available by default, that is `String`, `Integer`, `Boolean` etc. A field can also take another GraphQL Type as it's type but we'll cover that when we get there. Here's an example type:
 
 ```ruby
 Types::ExampleType = GraphQL::ObjectType.define do
   name "ExampleType"
-  description "An example description"
+  description "An example description" # Optional
 
-  field :someField, types.ID # represents a unique identifier, often used to refetch an object or as the key for a cache
+  field :someField, types.ID # represents a unique identifier, often the id of the object.
   field :anotherField, types.String # A UTF‐8 character sequence.
   field :thirdField, types.Int # A signed 32‐bit integer.
   field :fourthField, types.Float # A signed double-precision floating-point value.
@@ -352,7 +361,8 @@ We also need to test them so let's create the test files for each.
 ```bash
 touch spec/graphql/types/todo_list_type_spec.rb spec/graphql/types/item_type_spec.rb
 ```
-Now open up `spec/graphql/types/todo_list_spec.rb` and edit it.
+Now let's open up `spec/graphql/types/todo_list_spec.rb` and edit it.
+
 ```ruby
 # spec/graphql/types/todo_list_type_spec.rb
 
@@ -372,7 +382,8 @@ RSpec.describe Types::TodoListType do
 end
 ```
 
-Run `bundle exec rspec spec/graphql/types/todo_list_spec.rb`. Of course you'll get a lot of `Red` which means the tests are failing. Not to worry, we're about to fix that. Create the TodoList type file and open it up `app/graphql/types/todo_list.rb`.
+Run `bundle exec rspec spec/graphql/types/todo_list_spec.rb`. Of course there'll be a lot of `Red` which means the tests are failing. Not to worry, we're about to fix that. Create the TodoList type file and open it up `app/graphql/types/todo_list.rb`.
+
 ```ruby
 # app/graphql/types/todo_list.rb
 
@@ -386,11 +397,12 @@ module Types
   end
 end
 ```
-Now if you run the tests again everything should pass.
+When we run the tests again, everything should pass.
 
-Now before we move any further, you may have noticed an exclamation sign before  the type definition and are probably wondering what it means. Well, it simply means that that field is required and can therefore bot be empty. We'll get to see it in action when dealing with [mutations]().
+Now before we move any further, you may have noticed an exclamation sign before  the type definition and are probably wondering what it means. Well, it simply means that that field is required and can therefore not be empty. We'll get to see it in action when dealing with mutations.
 
 Let's move on and add the item type. As usual, we first test.
+
 ```ruby
 # spec/graphql/types/item_type_spec.rb
 
@@ -415,7 +427,8 @@ RSpec.describe Types::ItemType do
 end
 ```
 
-See that the tests fail. Then create the type file:
+See that the tests fail. Then create the `Type` file:
+
 ```bash
 touch app/graphql/types/item_type.rb
 ```
@@ -436,24 +449,25 @@ end
 
 Test again. Everything should be passing now.
 
-You'll notice that I'm using `module` instead of just namespacing the type definition. Some articles will have something like:
+You'll notice that we are using `module` instead of just namespacing the type definition. Some articles will have something like:
 ```ruby
 Types::TypeName = GraphQL::ObjectType.define do
   name 'TypeName'
   # [...the rest of your stuff]
 end
 ```
-Either option works but I'll be sticking to my way.
+Either option works but we'll be sticking to this.
 
-That's it for `Types`. Fun huh? It nothing's making sense, it's about to...
+That's it for `Types`. Fun huh? If nothing's making sense, it's about to...
 
 ## Queries
 
-If you're familiar with [REST](), a [GET]() basically fetches data from the data store. You can think of queries as more or less the same thing but with a few differences:
-- In REST, when you hit an endpoint eg`/users` you'd get all the user records with all the fields for each record(_assuming the method that defines the endpoint does a `User.all`_). In a GraphQL query, you could just return the first names or last name or any field you want.
+If you're familiar with [REST](https://searchmicroservices.techtarget.com/definition/RESTful-API), a [GET](http://www.restapitutorial.com/lessons/httpmethods.html#get) basically fetches data from the data store. You can think of queries as more or less the same thing but with a few differences:
+- In REST, when you hit an endpoint eg. `/users` you'd get all the user records with all the fields for each record(_assuming the method that defines the endpoint does a `User.all`_). In a GraphQL query, you could just return the first names or last name or any field you want.
 - In rest, to query for a record you'd have to do a `GET` but in GraphQL, since we only need one endpoint, all our requets are `POST`s and we specify whether it's a mutation or query as part of the request.
 
-Here's what a simple query would look like:
+Here's what a simple query would look like in the Graphiql client:
+
 ```graphql
 query {
   users {
@@ -463,7 +477,7 @@ query {
   }
 }
 ```
-Assuming we have a users table, we would get all the users but only the first_name, last_name and email fields would be returned.
+Assuming we have a users table, we would get all the users but only the first_name, last_name and email fields would be returned redardless of how many fields exist on the actual users table.
 
 Before we write our first real query, I promised that we would be introducing a simple way to keep our code well organized. Conventionally, all the queries in our app would reside in `/types/query_type.rb` as fields. [Here's](https://www.howtographql.com/graphql-ruby/2-queries/) a good example of that.
 
@@ -472,6 +486,8 @@ That's OK for small apps like this one but imagine a large one with hundreds, ma
 Inside the `/app/graphql/` directory, create another directory and call it `util` and inside it add a file `field_combiner.rb`. In the file, we'll define a class with a method that will iterate through the list of queryTypes and call fields on each one and merge the results into one hash. That way, all TodoList related queries can live in one querytype. [Here's](https://m.alphasights.com/graphql-ruby-clean-up-your-query-type-d7ab05a47084) the article to explain this better.
 
 ```ruby
+# app/graphql/util/field_combiner.rb
+
 module Util
   class FieldCombiner
     def self.combine(query_types)
@@ -484,7 +500,10 @@ end
 ```
 
 Next, open up `app/graphql/types/query_type.rb` and change it to look something like this:
+
 ```ruby
+# app/graphql/types/query_type.rb
+
 module Types
   QueryType = GraphQL::ObjectType.new.tap do |root_type|
     root_type.name = 'Query'
@@ -495,7 +514,7 @@ module Types
 end
 ```
 
-Now we are ready to write our first query. When we ran `rails g graphql:install`, we only created a folder for types and mutations. This is because the assumption was that all our queries would reside in the `query_type.rb` file. Since this is not the case, we'll create a new directory in the graphql directory to store our queryTypes and a similarly named one in `spec/graphql` for the tests.
+Now we are ready to write our first query. When we ran `rails g graphql:install`, we only created a folder for types and mutations. This is because convention assumed that all our queries would reside in the `query_type.rb` file. Since this is not the case, we'll create a new directory in the graphql directory to store our queryTypes and a similarly named one in `spec/graphql` for the tests.
 
 ```bash
 mkdir app/graphql/query_types spec/graphql/query_types
@@ -507,6 +526,7 @@ touch app/graphql/query_types/todo_list_query_type.rb spec/graphql/query_types/t
 ```
 
 By now we've gotten the gist of `Red, Green, Refactor`, where we write a failing test, make it pass then refactor our code. We'll handle the refactoring in the next article if need be. Let's edit the spec file:
+
 ```ruby
 # spec/graphql/query_types/todo_list_query_type_spec.rb
 
@@ -541,7 +561,9 @@ RSpec.describe QueryTypes::TodoListQueryType do
   end
 end
 ```
+
 It looks like there's a lot going on in this test but it's pretty simple. We first create three todo lists, ensure that the field returns a TodoList type, then finally check that all our todo lists are returned. To get the test to pass, we'll edit `app/graphql/query_types/todo_list_query_type.rb` to look like this:
+
 ```ruby
 # app/graphql/query_types/todo_list_query_type.rb
 
@@ -556,7 +578,9 @@ module QueryTypes
   end
 end
 ```
+
 Our tests should now pass but does it really work? Only one way to find out. Fire up the rails server `rails s` and open the `Graphiql` app that I hope you installed earlier. In the url, enter `http://localhost:3000/graphql` then in the body section, enter:
+
 ```graphql
 query {
   todo_lists {
@@ -565,7 +589,8 @@ query {
   }
 }
 ```
-Click the _`Play`_ icon and see what happens. You'll get an error `Field 'todo_lists' doesn't exist on type 'Query'"`. Guess why... Corrent....wrong... If I could read minds I'd probably know what you answered but I'm not yet that awesome. :wink: The reason for the error is that we have not told our schema about the field. To do this, we'll just add it to the array of fields on the querytypes file.
+Click the _`Play`_ icon and see what happens. You'll get an error `Field 'todo_lists' doesn't exist on type 'Query'"`. Guess why... Corrent....wrong... If I could read minds I'd probably know what you answered but I'm not yet that awesome. :wink: The reason for the error is that we have not told our schema where to fild the query. To do this, we'll just add it to the array of Qyery_types on the querytypes file.
+
 ```ruby
 # app/graphql/types/query_type.rb
 
@@ -577,13 +602,15 @@ root_type.fields = Util::FieldCombiner.combine([
 Running the query again should return all the todo lists we created when we seeded our database. Try removing `id` or `title` from the query and see what happens. You can also look at the terminal running your server to see how the sql changes depending on what fields we have in the query. Awesome, right?
 
 Let's also create a query type for items and return all items.
+
 ```bash
 touch app/graphql/query_types/item_query_type.rb spec/graphql/query_types/item_query_type_spec.rb
 ```
+And add the tests:
 
 ```ruby
 # spec/graphql/query_types/item_query_type_spec.rb
-RSpec.describe 'QueryTypes::TodoListQueryType' do
+RSpec.describe QueryTypes::TodoListQueryType do
 
   # create a todo lost to which each item will belong
   let!(:list1) { create(:todo_list) }
@@ -596,7 +623,7 @@ RSpec.describe 'QueryTypes::TodoListQueryType' do
 
   describe 'querying for todo lists with an item field included' do
     it 'returns an array of items for each field' do
-      query_result = QueryTypes::TodoListQueryType.fields['todo_lists'].resolve(nil, nil, nil)
+      query_result = subject.fields['todo_lists'].resolve(nil, nil, nil)
 
        todo_list1 = query_result[0]
        todo_list2 = query_result[1]
@@ -645,7 +672,386 @@ Time for a breather. I hope by now you're starting to see the awesomeness of Gra
 
 #### Querying with Arguments
 
+Assuming we have a RESTful endpoint to get a Todo List with ID `2`, it would look something like `http://ourdomain/todolists/2`. However, keeping in mind that we just have one endpoint, `/graphql`, we cannot append the ID of the Todo List to the end of our URL. Well then, how do we do it?
+
+This is where `arguments` come in. They help us tell GraphQL to return our query with whatever specifications we need it to. The arguments are defined using the keyword `argument` and available to the resolve method in the second argument, usually typed as `args`. So how do we do it in our API?
+
+Let's open up the `todo_list_query_type_spec` and add the test before doing the actual implementation.
+
+```ruby
+# spec/graphql/query_types/todo_list_query_type_spec.rb
+
+# [...]
+describe 'querying a specific todo_list using it\'s id' do
+  it 'returns the queried todo list' do
+    # set the id of list1 as the ID
+    id = list1.id
+    args = { id: id }
+    query_result = subject.fields['todo_list'].resolve(nil, args, nil)
+
+    # we should only get the first todo list from the db.
+    expect(query_result).to eq(list1)
+  end
+end
+```
+The test fails of course. Now let's write our query to make the test pass. In the todo_list_query_type let's add the field.
+
+```ruby
+# app/graphql/query_types/todo_list_query_type.rb
+
+# [...]
+field :todo_list, Types::TodoListType, 'returns the queried tod list' do
+  argument :id, !types.ID
+
+  resolve ->(_obj, args, _ctx) { TodoList.find_by!(id: args[:id]) }
+end
+```
+
+Now let's jump over to Graphiql and query for the Todo List with ID: 1.
+
+```graphql
+query {
+  todo_list (id: 1) {
+    id
+    title
+    items {
+      name
+      done
+    }
+  }
+}
+```
+The query returns, you guessed it, the first Todo List with all the Items related to it. Now try and add a query to get an item by id. You can compare the code with the one in the [repo](https://github.com/ranchow/todos_graphql-api/tree/part-1). And don't forget to test. :wink:
+
+Easy right? That's it for queries.
 
 ## Mutations
 
+When we want to create, edit or even delete something in our app, we do it in a **mutation**. Mutations do exactly what the name says they do...exert changes to data. We are going to add mutations to create new Todo Lists, items, mark  items as done and delete Todo Lists and Items. A simple create mutation would look like this:
+
+```ruby
+field :create_something, Types::SomeType do
+  argument :name, !types.String
+  argument :description, types.String
+
+  resolve ->(obj, args, ctx) do
+    SomeThing.create(
+      name: args[:name],
+      description: args[:description]
+    )
+  end
+end
+```
+We pass the data we need via arguments with required ones preceded by a `!`. We then call `.create` on the model and viola! Now let's head back to our app and add a mutation to create a new Todo List. As usual....
+
+```ruby
+# spec/graphql/mutations/todo_list_mutation_spec.rb
+
+RSpec.describe Mutations::TodoListMutation do
+  describe 'creating a new record' do
+    let(:args) do
+      {
+        title: 'Some random title'
+      }
+    end
+
+    it 'increases todo lists by 1' do
+      subject.fields['create_todo_list'].resolve(nil, args, nil)
+      # adds one todo_list to the db
+      expect(TodoList.count).to eq 1
+    end
+  end
+end
+```
+Then to make the test pass, ...
+
+```ruby
+# app/graphql/mutations/todo_list_mutation.rb
+
+module Mutations
+  TodoListMutation = GraphQL::ObjectType.define do
+    name 'TodoListMutation'
+    description 'Mutation type for todo list'
+
+    field :create_todo_list, Types::TodoListType do
+      argument :title, !types.String
+
+      resolve ->(_obj, args, _ctx) do
+        TodoList.create(
+          title: args[:title]
+        )
+      end
+    end
+  end
+end
+```
+
+We only require the title to create a Todo List and therefore it's the only required argument. The next thing is to tell graphql where to find the `create_todo_list`. To do this we just need to include the `TodoListMutation` mutation in the Mutations array.
+
+```ruby
+# app/graphql/types/mutation_type.rb
+
+# [...]
+root_type.fields = Util::FieldCombiner.combine([
+  Mutations::TodoListMutation
+])
+```
+Now let's fire up `Graphiql` and test out our code.
+
+```graphql
+mutation {
+  create_todo_list (
+    title: "An awesome todo list"
+  ) {
+    id
+    title
+  }
+}
+```
+We should get something like:
+```json
+{
+  "data": {
+    "create_todo_list": {
+      "id": "1",
+      "title": "An awesome todo list"
+    }
+  }
+}
+```
+Awesome, right? Now
+
+```ruby
+# spec/graphql//mutations/item_mutation_spec.rb
+
+RSpec.describe Mutations::ItemMutation do
+  describe 'creating a new record' do
+    # an item belongs to a tod list so we create one
+    let!(:todo_list) { create(:todo_list) }
+
+    it 'adds a new item' do
+      args = {
+        todo_list_id: todo_list.id,
+        name: 'An amazing name',
+      }
+
+      subject.fields['create_item'].resolve(nil, args, nil)
+      # The items count increases by 1
+      expect(Item.count).to eq(1)
+      # The name of the most recently created item matches the value we passed in args
+      expect(Item.last.name).to eq('An amazing name')
+    end
+  end
+end
+```
+And to make the test pass...
+
+```ruby
+# app/graphql/mutations/item_mutation.rb
+
+module Mutations
+  ItemMutation = GraphQL::ObjectType.define do
+    name 'ItemMutation'
+    description 'Mutations for items'
+
+    field :create_item, Types::ItemType do
+      argument :todo_list_id, !types.ID
+      argument :name, !types.String
+
+      resolve ->(_obj, args, _ctx) do
+        todo_list = TodoList.find(args[:todo_list_id])
+        # ensure that we actually find a todo list
+        return unless todo_list
+
+        todo_list.items.create(
+          name: args[:name]
+        )
+      end
+    end
+  end
+end
+```
+Also, remember to include the `ItemMutation` in the  `MutationType`.
+```ruby
+# app/graphql/types/mutation_type.rb
+
+# The mutation type should by now look like this.
+# [...]
+root_type.fields = Util::FieldCombiner.combine([
+  Mutations::TodoListMutation,
+  Mutations::ItemMutation
+])
+```
+
+Quick recap before we move forward. At this point, we have learnt how to:
+- Set up a GraphQL API,
+- Organize our code so that it's better manageable,
+- Create and test GraphQL queries and mutations.
+- Use Graphiql to test our code.
+
+Next, we'll look at `updating`/`editing` and `deleting` Todo lists and Items. At this point, we can sort of figure our way around so it should only get easier moving forward.
+
+Now let's add a mutation to edit and delete a todo list. As usual, we first test. A nice challenge would be to try andd write the test without referring just to see if you're getting the hang of it but if you get stuck, here it is..
+
+The test:
+```ruby
+# spec/graphql/mutations/todo_list_mutation_spec.rb
+
+# [...]
+describe 'editing a todo list' do
+  let!(:todo_list) { create(:todo_list, title: 'Old title') }
+
+  it 'updates a todo list' do
+    args = {
+      id: todo_list.id,
+      title: 'I am a new todo_list title'
+    }
+
+    query_result = Mutations::TodoListMutation.fields['edit_todo_list'].resolve(nil, args, nil)
+
+    expect(query_result.title).to eq('I am a new todo_list title')
+    # test that the number of todo lists doesn't change
+    expect(TodoList.count).to eq 1
+  end
+
+end
+
+describe 'deleting a todo list' do
+  let!(:todo_list1) { create(:todo_list) }
+  let!(:todo_list2) { create(:todo_list) }
+
+  it 'deletes a todo list' do
+    args = {
+      id: todo_list1.id
+    }
+    query = subject.fields['delete_todo_list'].resolve(nil, args, nil)
+
+    expect(query).not_to include(todo_list1)
+  end
+
+  it 'reduces the number of todo lists by one' do
+    args = {
+      id: todo_list1.id
+    }
+    subject.fields['delete_todo_list'].resolve(nil, args, nil)
+
+    expect(TodoList.count).to eq 1
+  end
+end
+```
+
+And the implementation...
+```ruby
+# app/graphql/mutations/todo_list_mutation.rb
+
+# [...]
+
+field :edit_todo_list, Types::TodoListType do
+  argument :id, !types.ID, 'the ID of the todolist to edit'
+  argument :title, types.String, 'the new title'
+
+  resolve ->(_obj, args, _ctx) do
+    todo_list = TodoList.find_by(id: args[:id])
+
+    if args.key?(:title)
+      todo_list.update(
+        title: args[:title]
+      )
+    end
+    todo_list
+  end
+end
+
+field :delete_todo_list, types[Types::TodoListType] do
+  argument :id, !types.ID, 'the ID of the todolist to delete'
+
+  resolve ->(_obj, args, _ctx) do
+    todo_lists = TodoList.all
+    todo_list = TodoList.find_by(id: args[:id])
+
+    # Ensure that we find the todo list
+    todo_list.destroy
+    # return all todo lists
+    todo_lists
+  end
+end
+
+# [...]
+```
+And finally, the `edit` and `delete` mutations for items. To edit, we probably just need to mark an item as done and that's what we'll do.
+First we test...
+
+```ruby
+# spec/graphql/mutations/item_mutation_spec.rb
+
+# [...]
+describe 'editing an item' do
+  let!(:todo_list) { create(:todo_list) }
+  let!(:item) { create(:item, todo_list: todo_list) }
+  # making an item as done
+  it 'marks an item as done' do
+    args = {
+      id: item.id
+    }
+    query_result = subject.fields['mark_item_done'].resolve(nil, args, nil)
+
+    expect(query_result.done).to eq true
+  end
+end
+
+describe 'deleting an item' do
+  let!(:todo_list) { create(:todo_list) }
+  let!(:item1) { create(:item, todo_list: todo_list) }
+  let!(:item2) { create(:item, todo_list: todo_list) }
+  let!(:item3) { create(:item, todo_list: todo_list) }
+
+  it 'deletes the wueried item' do
+    args = {
+      id: item1.id
+    }
+    subject.fields['delete_item'].resolve(nil, args, nil)
+
+    expect(Item.count).to eq 2
+    expect(Item.all).not_to include(item1)
+  end
+end
+```
+Then...
+```ruby
+# app/graphql/mutations/item_mutation.rb
+
+# [...]
+field :mark_item_done, Types::ItemType do
+  argument :id, !types.ID
+
+  resolve ->(_obj, args, _ctx) do
+    item = Item.find_by(id: args[:id])
+    return unless item
+
+    item.update(
+      done: true
+    )
+
+    item
+  end
+end
+
+field :delete_item, Types::ItemType do
+  argument :id, !types.ID
+
+  resolve ->(_obj, args, _ctx) do
+    item = Item.find_by(id: args[:id])
+    return unless item
+
+    item.destroy
+  end
+end
+```
+We can now fire up Graphiql and test out our Mutations.
+And voila! We are done with the first part of building out `Todo List GraphQL API`.
+
 # Conclusion
+
+At this point, we should be able to create simple queries and mutations and have an understanding of how GraphQL works in Ruby/Rails.
+
+In the next part of the tutorial, we will look at authentication.

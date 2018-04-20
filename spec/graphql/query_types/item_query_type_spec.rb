@@ -1,4 +1,4 @@
-RSpec.describe 'QueryTypes::TodoListQueryType' do
+RSpec.describe QueryTypes::TodoListQueryType do
 
   # create a todo lost to which each item will belong
   let!(:list1) { create(:todo_list) }
@@ -11,7 +11,7 @@ RSpec.describe 'QueryTypes::TodoListQueryType' do
 
   describe 'querying for todo lists with an item field included' do
     it 'returns an array of items for each field' do
-      query_result = QueryTypes::TodoListQueryType.fields['todo_lists'].resolve(nil, nil, nil)
+      query_result = subject.fields['todo_lists'].resolve(nil, nil, nil)
 
        todo_list1 = query_result[0]
        todo_list2 = query_result[1]
