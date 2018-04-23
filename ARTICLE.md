@@ -593,7 +593,7 @@ query {
   }
 }
 ```
-Click the _`Play`_ icon and see what happens. You'll get an error `Field 'todo_lists' doesn't exist on type 'Query'"`. Guess why... Corrent....wrong... If I could read minds I'd probably know what you answered but I'm not yet that awesome. :wink: The reason for the error is that we have not told our schema where to fild the query. To do this, we'll just add it to the array of Query_types on the querytypes file.
+Click the _`Play`_ icon and see what happens. You'll get an error `Field 'todo_lists' doesn't exist on type 'Query'"`. Guess why...well...the reason for the error is that we have not told our schema where to find the query. To do this, we'll just add it to the array of Query_types on the querytypes file.
 
 ```ruby
 # app/graphql/types/query_type.rb
