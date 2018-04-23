@@ -3,6 +3,14 @@
 
 This is the first of a three-part tutorial where we'll learn the fundamentals of building `GraphQL` APIs. We'll try our best to have as much test coverage as possible too.
 
+The [GraphQL official documentation] describes it as `a query language for APIs and a runtime for fulfilling those queries with your existing data`. Unlike REST, GraphQL allows you just to query for the data you need. Something to clarify at this point, GraphQL is **NOT** a replacement for REST but it definitely offers a number of advantages like:
+- we can request for all the data we need in one go.
+- it returns only the data we need.
+- it reduces the need for API versioning by providing tools for continuous evolution of the GraphQL schema.
+- we only require one endpoint for all our requests.
+
+We'll try to demonstrate these advantages and many more in the course of this tutorial series.
+
 ### Assumptions
 
 This is not a total beginner tutorial. You should have some experience writing applications using Rails and some basic understanding of web APIs. However, no experience in building GraphQL APIs is required or expected.
