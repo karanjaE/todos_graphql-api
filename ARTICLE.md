@@ -303,7 +303,34 @@ validates :name, presence: true, uniqueness: true
 belongs_to :todo_list
 ```
 
-Now all our tests should pass. And that's all we need for our models. Now to some GraphQL.
+Now all our tests should pass. And that's all we need for our models. We'll also need some test data to play with. To do this, we just need to write a seed for our database. Open `db/seeds.rb` and add:
+
+```ruby
+# db/seeds.rb
+require 'faker'
+
+# create 20 Todo Lists
+20.times do
+  TodoList.create(
+    title: Faker::Lorem.word
+  )
+end
+
+lists = TodoList.all
+
+# for each Todo List, add 5 Items
+lists.each do |list|
+  5.times do
+    list.items.create(
+      name: Faker::Lorem.word,
+      done: [true, false].sample
+    )
+  end
+end
+```
+Then run `rails db:seed`.
+
+Now to some GraphQL.
 
 # The API
 
