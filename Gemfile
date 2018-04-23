@@ -11,12 +11,12 @@ gem 'graphql', '~> 1.7', '>= 1.7.14'
 
 group :development, :test do
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+  gem 'pry-rails', '~> 0.3.6'
+  gem 'pry-byebug'
 end
 
 group :development do
   gem 'listen', '>= 3.0.5', '< 3.2'
-  gem 'pry-rails', '~> 0.3.6'
-  gem 'pry-byebug'
   gem 'spring'
   gem 'spring-watcher-listen', '~> 2.0.0'
 end

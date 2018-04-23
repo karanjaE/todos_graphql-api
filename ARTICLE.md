@@ -9,7 +9,7 @@ This is not a total beginner tutorial. You should have some experience writing a
 
 # Prerequisites
 
-As of writing this article, the Ruby version was "2.5.1" and Rails "5.2.0". I'll try and keep this article as up-to-date as possible. I recomment using [RVM](https://rvm.io) to manage different Ruby versions in case you have apps that require older versions fo some reason.
+As of writing this article, the Ruby version was "2.5.1" and Rails "5.2.0". I'll try and keep this article as up-to-date as possible. I recommend using [RVM](https://rvm.io) to manage different Ruby versions in case you have apps that require older versions fo some reason.
 
 In this part we will cover:
 - Setting up our app
@@ -33,18 +33,18 @@ rails db:create
 ```
 to initialize out test and development databases.
 
-To be able to query our API, we'll need a client. I recomment using Graphiql-app but there are definitely other options out there to discover if you're curious. Go [here](https://github.com/skevy/graphiql-app) to install Graphiql.
+To be able to query our API, we'll need a client. I recommend using Graphiql-app but there are definitely other options out there to discover if you're curious. Go [here](https://github.com/skevy/graphiql-app) to install Graphiql.
 
 ### Dependencies
 
 Before we go any further, here's a list of our app's dependencies:
-- [GraphQL Rails](https://rubygems.org/gems/graphql) : The gem that will form the backbone of our api
+- [GraphQL Rails](https://rubygems.org/gems/graphql) : Forms the backbone of our api
 - [RSpec Rails](https://rubygems.org/gems/rspec-rails) : Our test framework
-- [Factory Bot Rails](https://rubygems.org/gems/factory_bot_rails) : To generate fixtures for our tests.
+- [Factory Bot Rails](https://rubygems.org/gems/factory_bot_rails) : Generates fixtures for our tests.
 - [Shoulda Matchers](https://rubygems.org/gems/shoulda-matchers)
-- [Database Cleaner](https://rubygems.org/gems/database_cleaner) : To clean up the test database so that tests always start on a clean slate.
-- [Faker](https://rubygems.org/gems/faker) : To generate fake data for our tests and seed data.
-- [Pry Rails](https://rubygems.org/gems/pry-rails) : To help debug in case we introduce a bug in our code. I'll try to not introduce any though. :wink:
+- [Database Cleaner](https://rubygems.org/gems/database_cleaner) : Cleans up the test database so that tests always start on a clean slate.
+- [Faker](https://rubygems.org/gems/faker) : Generates fake data for our tests and seed data.
+- [Pry Rails](https://rubygems.org/gems/pry-rails) : Helps debug in case we introduce a bug in our code. I'll try to not introduce any though. :wink:
 
 Now let's update the `Gemfile`.
 
@@ -114,14 +114,16 @@ To initialize the spec directory, run `rails g rspec:install`. This command crea
  RSpec.configuration do |config|
    # [...]
    # set up factory bot
-   config.include Factory::Syntax::Methods
+   config.include FactoryBot::Syntax::Methods
 
-   # set up shoulda matchers
+   # set up database cleaner
+   #start by truncating all the tables but then use the faster transaction strategy the rest of the time.
   config.before(:suite) do
     DatabaseCleaner.clean_with(:truncation)
     DatabaseCleaner.strategy = :transaction
   end
 
+  # start the transaction strategy as examples are run
   config.around(:each) do |example|
     DatabaseCleaner.cleaning do
       example.run
@@ -142,7 +144,7 @@ To initialize the spec directory, run `rails g rspec:install`. This command crea
  rails g model todo_list title:string
  ```
 
- The command should generate a migration file, a model file and spec file. I case the spec file is not automatically generated, run:
+ The command should generate a migration file, a model file and spec file. In case the spec file is not automatically generated, run:
  ```bash
  rails g rspec:model todo_list
  ```
@@ -152,7 +154,7 @@ rails g model item name:string done:boolean todo_list:references
 rails g rspec:model item # in case the spec is not automatically generated
 ```
 
-The `todo:references` argument creates a `belongs_to` association with the `Todo List`.
+The `todo_list:references` argument creates a `belongs_to` association with the `Todo List`.
 
 That's that. Now we test.
 
@@ -306,7 +308,7 @@ The command creates a `graphql` folder and in it two folders, `types/` and `mmut
 mkdir spec/graphql
 mkdir spec/graphql/types spec/graphql/mutations
 ```
-To help run tests for our GraphQL stuff we'll need another library to make it easier. Add this like to the test group in Gemfile.
+To help run tests for our GraphQL stuff we'll need another library to make it easier. Add this line to the test group in Gemfile.
 ```ruby
 group :test do
   # [...]
@@ -536,20 +538,13 @@ RSpec.describe QueryTypes::TodoListQueryType do
   types = GraphQL::Define::TypeDefiner.instance
 
   describe 'querying all todo lists' do
-    # create fake todo lists using the todo_list factory
-    let!(:list1) { create(:todo_list) }
-    let!(:list2) { create(:todo_list) }
-    let!(:list3) { create(:todo_list) }
 
     it 'has a :todo_lists that returns a ToDoList type' do
       expect(subject).to have_field(:todo_lists).that_returns(types[Types::TodoListType])
     end
 
     it 'returns all our created todo lists' do
-      # subject refers to the item described at the to of the file in this case: QueryTypes::TodoListQueryType
       query_result = subject.fields['todo_lists'].resolve(nil, nil, nil)
-
-      todo_lists = [list1, list2, list3]
 
       # ensure that each of our todo lists is returned
       todo_lists.each do |list|
@@ -590,7 +585,7 @@ query {
   }
 }
 ```
-Click the _`Play`_ icon and see what happens. You'll get an error `Field 'todo_lists' doesn't exist on type 'Query'"`. Guess why... Corrent....wrong... If I could read minds I'd probably know what you answered but I'm not yet that awesome. :wink: The reason for the error is that we have not told our schema where to fild the query. To do this, we'll just add it to the array of Qyery_types on the querytypes file.
+Click the _`Play`_ icon and see what happens. You'll get an error `Field 'todo_lists' doesn't exist on type 'Query'"`. Guess why... Corrent....wrong... If I could read minds I'd probably know what you answered but I'm not yet that awesome. :wink: The reason for the error is that we have not told our schema where to fild the query. To do this, we'll just add it to the array of Query_types on the querytypes file.
 
 ```ruby
 # app/graphql/types/query_type.rb
@@ -607,42 +602,11 @@ Let's also create a query type for items and return all items.
 ```bash
 touch app/graphql/query_types/item_query_type.rb spec/graphql/query_types/item_query_type_spec.rb
 ```
-And add the tests:
+Challenge: why not try and figure out how you'd test the item query type? Here's a hint; we want to make sure that when we query for a Todo List, we also get the items related to it.
 
-```ruby
-# spec/graphql/query_types/item_query_type_spec.rb
-RSpec.describe QueryTypes::TodoListQueryType do
+Here's the code that should make the tests pass.
 
-  # create a todo lost to which each item will belong
-  let!(:list1) { create(:todo_list) }
-  let!(:list2) { create(:todo_list) }
-
-  let!(:item1) { create(:item, todo_list: list1) }
-  let!(:item2) { create(:item, todo_list: list1) }
-  let!(:item3) { create(:item, todo_list: list1) }
-  let!(:item4) { create(:item, todo_list: list2) }
-
-  describe 'querying for todo lists with an item field included' do
-    it 'returns an array of items for each field' do
-      query_result = subject.fields['todo_lists'].resolve(nil, nil, nil)
-
-       todo_list1 = query_result[0]
-       todo_list2 = query_result[1]
-
-       item_list1 = [item1, item2, item2]
-
-       item_list1.each do |item|
-         expect(todo_list1.items).to include(item)
-       end
-       expect(todo_list1.items.count).to eq(item_list1.count)
-       expect(todo_list2.items).to include(item4)
-
-       expect(todo_list2.items).not_to include(item2)
-    end
-  end
-end
-```
-It makes sense to include items when we query for Todo lists sinse an Item belongs to a ToDoList. To do this, we will introduce another field in the `TodoListType` that will be of type Item and will return the itemsin an array. Let's update the TodoListType.
+It makes sense to include items when we query for Todo lists since an Item belongs to a ToDoList. To do this, we will introduce another field in the `TodoListType` that will be of type Item and will return the items in an array. Let's update the TodoListType.
 
 ```ruby
 # app/graphql/types/todo_list_type.rb
@@ -743,7 +707,7 @@ field :create_something, Types::SomeType do
   end
 end
 ```
-We pass the data we need via arguments with required ones preceded by a `!`. We then call `.create` on the model and viola! Now let's head back to our app and add a mutation to create a new Todo List. As usual....
+We pass the data we need via arguments with required ones preceded by a `!`. We then call `.create` on the model and voilà! Now let's head back to our app and add a mutation to create a new Todo List. As usual....
 
 ```ruby
 # spec/graphql/mutations/todo_list_mutation_spec.rb
@@ -757,9 +721,9 @@ RSpec.describe Mutations::TodoListMutation do
     end
 
     it 'increases todo lists by 1' do
-      subject.fields['create_todo_list'].resolve(nil, args, nil)
+      mutation = subject.fields['create_todo_list'].resolve(nil, args, nil)
       # adds one todo_list to the db
-      expect(TodoList.count).to eq 1
+      expect(mutation).to change { TodoList.count }.by 1
     end
   end
 end
@@ -910,11 +874,10 @@ describe 'editing a todo list' do
 
     query_result = Mutations::TodoListMutation.fields['edit_todo_list'].resolve(nil, args, nil)
 
-    expect(query_result.title).to eq('I am a new todo_list title')
+    expect(query_result.title).to eq(args[:title])
     # test that the number of todo lists doesn't change
     expect(TodoList.count).to eq 1
   end
-
 end
 
 describe 'deleting a todo list' do

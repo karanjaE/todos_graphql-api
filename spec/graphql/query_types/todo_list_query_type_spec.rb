@@ -3,9 +3,7 @@ RSpec.describe QueryTypes::TodoListQueryType do
   types = GraphQL::Define::TypeDefiner.instance
 
   # create fake todo lists using the todo_list factory
-  let!(:list1) { create(:todo_list) }
-  let!(:list2) { create(:todo_list) }
-  let!(:list3) { create(:todo_list) }
+  let!(:todo_lists) { create_list(:todo_list, 3) }
 
   describe 'querying all todo lists' do
 
@@ -15,8 +13,6 @@ RSpec.describe QueryTypes::TodoListQueryType do
 
     it 'returns all our created todo lists' do
       query_result = subject.fields['todo_lists'].resolve(nil, nil, nil)
-
-      todo_lists = [list1, list2, list3]
 
       # ensure that each of our todo lists is returned
       todo_lists.each do |list|
@@ -31,12 +27,12 @@ RSpec.describe QueryTypes::TodoListQueryType do
   describe 'querying a specific todo_list using it\'s id' do
     it 'returns the queried todo list' do
       # set the id of list1 as the ID
-      id = list1.id
+      id = todo_lists.first.id
       args = { id: id }
       query_result = subject.fields['todo_list'].resolve(nil, args, nil)
 
       # we should only get the first todo list from the db.
-      expect(query_result).to eq(list1)
+      expect(query_result).to eq(todo_lists.first)
     end
   end
 end
