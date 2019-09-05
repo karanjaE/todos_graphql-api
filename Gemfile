@@ -11,7 +11,7 @@ gem 'graphql', '~> 1.7', '>= 1.7.14'
 
 group :development, :test do
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
-  gem 'pry-rails', '~> 0.3.6'
+  gem 'pry-rails', '~> 0.3.9'
   gem 'pry-byebug'
 end
 
