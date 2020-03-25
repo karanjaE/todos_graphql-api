@@ -26,7 +26,7 @@ group :test do
   gem 'factory_bot_rails', '~> 4.8', '>= 4.8.2'
   gem 'faker', '~> 1.8', '>= 1.8.7'
   gem 'rspec-graphql_matchers'
-  gem 'rspec-rails', '~> 3.7', '>= 3.7.2'
+  gem 'rspec-rails', '~> 4.0'
   gem 'shoulda-matchers', '~> 3.1', '>= 3.1.2'
 end
 
